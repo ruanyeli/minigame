@@ -2,7 +2,7 @@
 <html lang="en"><!--语言为英语-->
 <head><!--头部-->
 <meta charset="UTF-8"><!--字符编码：utf-8国际编码  gb2312中文编码-->
-<title>HTML5 Canvas推箱子小游戏源码 - 站长素材</title>
+<title>HTML5 Canvas推箱子</title>
 <style>/*css样式表的衣柜*/
 *{
 	margin:0px;
@@ -13,11 +13,44 @@ body{
 }
 .game{
 	width:560px;
-	margin:50px auto;
+	/* margin:50px auto; */
 }
+.next{
+	position: absolute;
+	left:580px;
+	top:0;
+}
+.next input{
+	width: 100px;
+	height: 100px;
+	padding: 30px 0;
+	text-align: center;
+	line-height: 50px;
+	margin-top: 20px;
+}
+.tips{
+	width:560px;
+	height: 560px;
+	position: absolute;
+	right:0;
+	top:0;
+	background-color: #eee;
+	border:1px solid #ccc;
+}	
+.error{
+	width:560px;
+	height: 100px;
+	background-color: #eee;
+	border:1px solid #ccc;
+	position: absolute;
+	bottom:20px;
+	left:0;
+}																																											
+
 </style>
 </head>
-<body onkeydown="doKeyDown(event)"><!--身体-->
+<!-- <body onkeydown="doKeyDown(event)"> -->
+	<body>
 	<div class="game">
 		<canvas id="canvas" width="560" height="560"></canvas>
 		<div id="msg"></div>
@@ -25,6 +58,21 @@ body{
 		<input type="button" value="下一关" onClick="NextLevel(1)">
 		<input type="button" value="重玩本关" onClick="NextLevel(0)">
 		<input type="button" value="游戏说明" onClick="showHelp()">
+	</div>
+	<div class="next">
+		<input type="button" value="向下" onclick="goDown()"><br>
+		<input type="button" value="向上" onclick="goUp()"><br>
+		<input type="button" value="向左" onclick="goLeft()"><br>
+		<input type="button" value="向右" onclick="goRight()"><br>
+		<input type="button" value="推动箱子" onclick="promote()">
+	</div>
+	<div class="tips">
+		<h3>代码提示:</h3>
+		<p></p>
+	</div>
+	<div class="error">
+		<h3>错误提示:</h3>
+		<p></p>
 	</div>
 
 <script src="js/mapdata100.js"></script>
@@ -38,6 +86,7 @@ body{
 	var curMan;//初始化小人
 	var iCurlevel = 0;//关卡数
 	var moveTimes = 0;//移动了多少次
+
 	//预加载所有图片
 	var oImgs = {
 		"block" : "images/block.gif",
@@ -68,7 +117,6 @@ body{
 			images[src].src = srcs[src];
 		}
 	}
-
 	var block,wall,box,ball,up,down,left,right;
 	imgPreload(oImgs,function(images){
 		//console.log(images.block);
@@ -89,7 +137,8 @@ body{
 		initLevel();//初始化对应等级的游戏
 		showMoveInfo();//初始化对应等级的游戏数据
 	}
-	//绘制地板
+
+	//绘制地图
 	function InitMap(){
 		for (var i=0;i<16 ;i++ )
 		{
@@ -99,12 +148,13 @@ body{
 			}
 		}
 	}
-	//小人位置坐标
+
+	//人物位置坐标
 	function Point(x,y){
 		this.x = x;
 		this.y = y;
+		// console.log(this.x)
 	}
-
 	var perPosition = new Point(5,5);//小人的初始标值
 	//绘制每个游戏关卡地图
 	function DrawMap(level){
@@ -139,7 +189,6 @@ body{
 			}
 		}
 	}
-	
 	//初始化游戏等级
 	function initLevel(){
 		curMap = copyArray(levels[iCurlevel]);//当前移动过的游戏地图
@@ -203,6 +252,8 @@ body{
 		InitMap();
 		//重绘当前更新了数据的地图
 		DrawMap(curMap);
+		console.log(curMap)
+		console.log(curMap.length)
 		//若果移动完成了进入下一关
 		if (checkFinish())
 		{
@@ -227,17 +278,22 @@ body{
 	}
 	//判断小人是否能够移动
 	function Trygo(p1,p2){
+		console.log(p1,p2)
 		if(p1.x<0) return false;//若果超出地图的上边，不通过
 		if(p1.y<0) return false;//若果超出地图的左边，不通过
 		if(p1.x>curMap.length) return false;//若果超出地图的下边，不通过
 		if(p1.y>curMap[0].length) return false;//若果超出地图的右边，不通过
-		if(curMap[p1.x][p1.y]==1) return false;//若果前面是墙，不通过
-		if (curMap[p1.x][p1.y]==3 || curMap[p1.x][p1.y]==5)
-		{//若果小人前面是箱子那就还需要判断箱子前面有没有障碍物(箱子/墙)
+		if(curMap[p1.x][p1.y]==1){alert("前方已无路");return false; }//若果前面是墙，不通过
+		if(curMap[p1.x][p1.y]==3){alert("点击推箱子");curMap[p2.x][p2.y] = 3;}//当人物前面是箱子，则需要点击推箱子
+		if (curMap[p1.x][p1.y]==3 || curMap[p1.x][p1.y]==5)//若果小人前面是箱子那就还需要判断箱子前面有没有障碍物(箱子/墙)
+		//1-墙壁，2-陷阱，3-箱子，4-人物，5-箱子及陷阱位置
+		//p1:人物的前1个坐标，p2：人物的前2个坐标
+		{
 			if (curMap[p2.x][p2.y]==1 || curMap[p2.x][p2.y]==3)
 			{
+				alert("前方已无路")
 				return false;
-			}
+			} 
 			//若果判断不成功小人前面的箱子前进一步
 			curMap[p2.x][p2.y] = 3;//更改地图对应坐标点的值
 			//console.log(curMap[p2.x][p2.y]);
@@ -264,24 +320,46 @@ body{
 	}
 	//判断是否推成功
 	//与键盘上的上下左右键关联
-	function doKeyDown(event){
-		switch (event.keyCode)
-		{
-		case 37://左键头
-			go("left");
-			break;
-		case 38://上键头
-			go("up");
-			break;
-		case 39://右箭头
-			go("right");
-			break;
-		case 40://下箭头
-			go("down");
-			break;
-		}
+	//与按钮结合
+	// function doKeyDown(event){
+	// 	switch (event.keyCode)
+	// 	{
+	// 	case 37://左键头
+	// 		go("left");
+	// 		break;
+	// 	case 38://上键头
+	// 		go("up");
+	// 		break;
+	// 	case 39://右箭头
+	// 		go("right");
+	// 		break;
+	// 	case 40://下箭头
+	// 		go("down");
+	// 		break;
+	// 	}
 
+	// }
+	//点击事件
+	function goDown(){
+		// console.log(1)
+		go("down");
 	}
+	function goUp(){
+		go("up");
+	}
+	function goLeft(){
+		go("left");
+	}
+	function goRight(){
+		go("right");
+	}
+	function promote(){
+		//获取人物的坐标
+		go("down");
+		// return true;
+		//获取当前坐标的前后左右是否有箱子
+	}
+
 	//完善关卡数据及游戏说明
 	function showMoveInfo(){
 		msg.innerHTML = "第" + (iCurlevel+1) +"关 移动次数: "+ moveTimes;
@@ -292,7 +370,7 @@ body{
 		showhelp = !showhelp;
 		if (showhelp)
 		{
-			msg.innerHTML = "用键盘上的上、下、左、右键移动小人，把箱子全部推到小球的位置即可过关。箱子只可向前推，不能往后拉，并且小人一次只能推动一个箱子。";
+			msg.innerHTML = "根据提示，把箱子全部推到小球的位置即可过关。箱子只可向前推，不能往后拉，并且小人一次只能推动一个箱子。";
 		}else{
 			showMoveInfo();
 		}
@@ -310,8 +388,8 @@ body{
 </script>
 
 <div style="text-align:center;margin:50px 0; font:normal 14px/24px 'MicroSoft YaHei';">
-<p>适用浏览器：360、FireFox、Chrome、Safari、Opera、傲游、搜狗、世界之窗. 不支持IE8及以下浏览器。</p>
-<p>来源：<a href="http://sc.chinaz.com/" target="_blank">站长素材</a></p>
+<!-- <p>适用浏览器：360、FireFox、Chrome、Safari、Opera、傲游、搜狗、世界之窗. 不支持IE8及以下浏览器。</p> -->
+<!-- <p>来源：<a href="http://sc.chinaz.com/" target="_blank">站长素材</a></p> -->
 </div>
 </body>	
 </html>
